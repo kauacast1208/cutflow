@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { CalendarDays, Clock3, User, Scissors } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
-import "../globals.css"; // ESSENCIAL PARA O ESTILO
+import "../globals.css"; // Caminho corrigido para a sua estrutura
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,8 +29,9 @@ export default function AgendarClientePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!selectedService) return toast.error("Selecione um serviço")
+    
     setLoading(true)
-
     const { error } = await supabase
       .from("appointments")
       .insert([{ 
@@ -43,11 +44,8 @@ export default function AgendarClientePage() {
     if (error) {
       toast.error("Erro ao realizar agendamento")
     } else {
-      toast.success("Agendamento solicitado com sucesso!")
-      setName('')
-      setDate('')
-      setTime('')
-      setSelectedService('')
+      toast.success("Agendamento realizado!")
+      setName(''); setDate(''); setTime(''); setSelectedService('')
     }
     setLoading(false)
   }
@@ -57,7 +55,7 @@ export default function AgendarClientePage() {
       <Toaster theme="dark" position="top-center" />
       
       <div className="bg-[#111] border border-white/5 p-8 rounded-2xl w-full max-w-lg shadow-2xl">
-        <h1 className="text-3xl font-bold tracking-tight mb-2 italic">CutFlow</h1>
+        <h1 className="text-3xl font-bold tracking-tight mb-2 italic text-white">CutFlow</h1>
         <p className="text-gray-500 mb-8">Preencha os dados abaixo para garantir seu horário.</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -79,19 +77,23 @@ export default function AgendarClientePage() {
             <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
               <Scissors size={16} /> Serviço
             </label>
-            <select 
-              value={selectedService}
-              onChange={(e) => setSelectedService(e.target.value)}
-              className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none focus:border-white/40 appearance-none"
-              required
-            >
-              <option value="" className="bg-black">Selecione o serviço...</option>
+            <div className="grid grid-cols-1 gap-2">
               {services.map(service => (
-                <option key={service.id} value={service.id} className="bg-black">
-                  {service.name} - R$ {service.price.toFixed(2)}
-                </option>
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => setSelectedService(service.id)}
+                  className={`p-3 rounded-xl border transition-all text-left flex justify-between ${
+                    selectedService === service.id 
+                    ? "border-white bg-white text-black" 
+                    : "border-white/10 bg-black text-white hover:border-white/30"
+                  }`}
+                >
+                  <span>{service.name}</span>
+                  <span className="opacity-60 text-sm">R$ {service.price.toFixed(2)}</span>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
