@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-import { DollarSign, Users, Calendar, TrendingUp } from 'lucide-react'
+import { DollarSign, Users, Clock, AlertCircle, TrendingUp } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,35 +10,41 @@ const supabase = createClient(
 )
 
 export default function DashboardPrincipal() {
-  const [stats, setStats] = useState({ revenue: 0, clients: 0, appointments: 0 })
-  const [nextClient, setNextClient] = useState<any>(null)
+  const [stats, setStats] = useState({ daily: 0, pending: 0, totalClients: 0 })
+  const [pendingList, setPendingList] = useState<any[]>([])
 
   useEffect(() => {
     async function getStats() {
-      // Puxa agendamentos confirmados para calcular faturamento
-      const { data: appts } = await supabase
+      const today = new Date().toISOString().split('T')[0]
+
+      // 1. Puxa TUDO para calcular
+      const { data: allAppts } = await supabase
         .from('appointments')
         .select('*, services(price)')
-        .eq('status', 'confirmed')
 
-      const totalRevenue = appts?.reduce((acc, curr) => acc + (curr.services?.price || 0), 0) || 0
-      
-      setStats({
-        revenue: totalRevenue,
-        clients: appts?.length || 0,
-        appointments: appts?.length || 0
-      })
+      if (allAppts) {
+        // Faturamento Diário (Confirmados hoje)
+        const dailyRevenue = allAppts
+          .filter(a => a.status === 'confirmed' && a.date.startsWith(today))
+          .reduce((acc, curr) => acc + (curr.services?.price || 0), 0)
 
-      // Puxa o próximo cliente do dia
-      const { data: next } = await supabase
-        .from('appointments')
-        .select('*, services(name)')
-        .eq('status', 'confirmed')
-        .order('date', { ascending: true })
-        .limit(1)
-        .single()
+        // Pagamentos Pendentes (Status 'pending')
+        const pendingRevenue = allAppts
+          .filter(a => a.status === 'pending')
+          .reduce((acc, curr) => acc + (curr.services?.price || 0), 0)
 
-      if (next) setNextClient(next)
+        // Total de Clientes Únicos
+        const uniqueClients = new Set(allAppts.map(a => a.client_name)).size
+
+        setStats({
+          daily: dailyRevenue,
+          pending: pendingRevenue,
+          totalClients: uniqueClients
+        })
+
+        // Lista os top 3 pendentes
+        setPendingList(allAppts.filter(a => a.status === 'pending').slice(0, 3))
+      }
     }
 
     getStats()
@@ -47,55 +53,67 @@ export default function DashboardPrincipal() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="text-3xl font-black italic uppercase tracking-tighter">Resumo Geral</h1>
-        <p className="text-zinc-500">O que está acontecendo na CutFlow hoje.</p>
+        <h1 className="text-3xl font-black italic uppercase tracking-tighter">Financeiro & Fluxo</h1>
+        <p className="text-zinc-500">Controle de caixa e atendimentos pendentes.</p>
       </div>
 
       {/* CARDS DE STATUS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2rem]">
+        {/* FATURAMENTO DIÁRIO */}
+        <div className="bg-white text-black p-6 rounded-[2rem] shadow-xl">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-white text-black rounded-2xl"><DollarSign size={20}/></div>
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-right">Faturamento <br/> Confirmado</span>
+            <div className="p-2 bg-black text-white rounded-xl"><TrendingUp size={18}/></div>
+            <span className="text-[10px] font-black uppercase tracking-widest italic">Hoje</span>
           </div>
-          <p className="text-4xl font-black">R$ {stats.revenue.toFixed(2)}</p>
+          <p className="text-xs font-bold opacity-60 uppercase">Faturamento Diário</p>
+          <p className="text-4xl font-black italic leading-none mt-1">R$ {stats.daily.toFixed(2)}</p>
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2rem]">
+        {/* PENDENTES */}
+        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-[2rem]">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-zinc-800 text-white rounded-2xl"><Users size={20}/></div>
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-right">Clientes <br/> Atendidos</span>
+            <div className="p-2 bg-yellow-500 text-black rounded-xl"><AlertCircle size={18}/></div>
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic">A Receber</span>
           </div>
-          <p className="text-4xl font-black">{stats.clients}</p>
+          <p className="text-xs font-bold text-zinc-500 uppercase">Pagamentos Pendentes</p>
+          <p className="text-4xl font-black text-yellow-500 leading-none mt-1">R$ {stats.pending.toFixed(2)}</p>
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-[2rem]">
+        {/* CLIENTES */}
+        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-[2rem]">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-zinc-800 text-white rounded-2xl"><Calendar size={20}/></div>
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-right">Agendamentos <br/> Totais</span>
+            <div className="p-2 bg-zinc-800 text-white rounded-xl"><Users size={18}/></div>
           </div>
-          <p className="text-4xl font-black">{stats.appointments}</p>
+          <p className="text-xs font-bold text-zinc-500 uppercase">Base de Clientes</p>
+          <p className="text-4xl font-black leading-none mt-1">{stats.totalClients}</p>
         </div>
       </div>
 
-      {/* PRÓXIMO CLIENTE DESTAQUE */}
-      {nextClient && (
-        <div className="bg-white text-black p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl shadow-white/5">
-          <div className="flex items-center gap-6">
-            <div className="w-20 h-20 bg-black text-white rounded-full flex items-center justify-center text-3xl font-black italic border-4 border-zinc-200">
-              {nextClient.client_name[0]}
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-1">Próximo da Fila</p>
-              <h2 className="text-3xl font-black italic uppercase leading-none">{nextClient.client_name}</h2>
-              <p className="font-bold opacity-60 mt-1">{nextClient.services?.name} • {new Date(nextClient.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</p>
-            </div>
-          </div>
-          <div className="px-6 py-3 border-2 border-black rounded-full font-black uppercase tracking-widest text-sm">
-            Prepare a Tesoura ✂️
-          </div>
+      {/* SEÇÃO DE PENDENTES RÁPIDA */}
+      <div className="bg-zinc-950 border border-zinc-900 rounded-[2.5rem] p-8">
+        <h2 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2">
+          <Clock className="text-zinc-500" size={20} /> Próximos Pendentes
+        </h2>
+        
+        <div className="space-y-4">
+          {pendingList.length === 0 ? (
+            <p className="text-zinc-600 text-sm italic">Nenhum pagamento pendente no momento.</p>
+          ) : (
+            pendingList.map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl">
+                <div>
+                  <p className="font-bold text-white uppercase text-sm italic">{item.client_name}</p>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase">{item.services?.name || 'Serviço'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-white italic">R$ {item.services?.price.toFixed(2)}</p>
+                  <p className="text-[10px] text-yellow-500 font-black uppercase">Aguardando</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
