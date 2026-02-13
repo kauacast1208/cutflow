@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import { CalendarDays, Clock3, User, Scissors } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
+import "../globals.css"; // ESSENCIAL PARA O ESTILO
 
-// Inicialização do Supabase
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -53,7 +53,6 @@ export default function AgendarClientePage() {
   }
 
   return (
-    // ESTILO DE FUNDO PRETO
     <div className="min-h-screen bg-[#060606] text-white p-6 flex items-center justify-center font-sans">
       <Toaster theme="dark" position="top-center" />
       
