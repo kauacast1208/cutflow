@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import { CalendarClock, CheckCircle, XCircle, Clock3, User } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,90 +13,106 @@ export default function AgendamentosPage() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  async function fetchAppointments() {
-    const { data, error } = await supabase
-      .from("appointments")
-      .select("*, services(name, price)")
-      .order("appointment_date", { ascending: true })
-      .order("appointment_time", { ascending: true })
-
-    if (!error) setAppointments(data || [])
-    setLoading(false)
-  }
+  useEffect(() => {
+    async function fetchAppointments() {
+      setLoading(true)
+      // Buscamos o agendamento e o nome do serviço relacionado
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("*, services(name, price)")
+        .order('date', { ascending: true })
+      
+      if (!error) setAppointments(data || [])
+      setLoading(false)
+    }
+    fetchAppointments()
+  }, [])
 
   async function updateStatus(id: string, newStatus: string) {
     const { error } = await supabase
       .from("appointments")
       .update({ status: newStatus })
       .eq("id", id)
-
-    if (!error) fetchAppointments()
+    
+    if (!error) {
+      // Atualiza a lista localmente para não precisar recarregar
+      setAppointments(prev => 
+        prev.map(app => app.id === id ? {...app, status: newStatus} : app)
+      )
+    }
   }
 
-  useEffect(() => { fetchAppointments() }, [])
-
   return (
-    <div className="p-8 max-w-6xl mx-auto text-white">
-      <h1 className="text-3xl font-bold mb-8">Agenda do Dia</h1>
+    <div className="p-8 max-w-7xl mx-auto text-white animate-in fade-in duration-500">
+      <div className="flex justify-between items-center mb-10">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Agenda</h1>
+          <p className="text-gray-500">Gerencie todos os cortes agendados.</p>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {loading ? (
-          <p className="text-zinc-500">Carregando...</p>
-        ) : appointments.length === 0 ? (
-          <p className="text-zinc-500 col-span-full text-center py-10">Nenhum agendamento.</p>
-        ) : (
-          appointments.map((app) => (
-            <div key={app.id} className={`bg-zinc-900 border ${app.status === 'concluído' ? 'border-green-900/50' : 'border-zinc-800'} p-5 rounded-xl transition-all`}>
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="text-lg font-bold">{app.client_name}</h3>
-                  <span className="text-xs text-zinc-500 uppercase font-mono">{app.status}</span>
-                </div>
-                <span className="text-xs bg-blue-950 text-blue-300 px-2 py-1 rounded-full">
-                  {new Date(app.appointment_date).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
-                </span>
-              </div>
-              
-              <div className="space-y-1 mb-4">
-                <p className="text-sm text-zinc-300">📅 {app.appointment_time.substring(0, 5)}</p>
-                <p className="text-sm text-zinc-300">✂️ {app.services?.name}</p>
-                <p className="text-sm font-bold text-green-400">R$ {app.services?.price}</p>
-              </div>
-
-              <div className="flex flex-col gap-2 border-t border-zinc-800 pt-3 mt-3">
-                {/* BOTÃO WHATSAPP COM MENSAGEM */}
-                {app.client_phone && (
-                  <a 
-                    href={`https://wa.me/55${app.client_phone.replace(/\D/g, '')}?text=${encodeURIComponent(
-                      `Olá ${app.client_name}, tudo bem? Aqui é do CutFlow! Passando para confirmar seu horário de ${app.services?.name} hoje às ${app.appointment_time.substring(0, 5)}. Podemos confirmar?`
-                    )}`} 
-                    target="_blank"
-                    className="bg-green-600/10 hover:bg-green-600 text-green-500 hover:text-white text-xs font-bold py-2 px-3 rounded transition-all text-center"
+      <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-white/[0.02] border-b border-white/5">
+              <th className="p-5 text-sm font-medium text-gray-400">Cliente</th>
+              <th className="p-5 text-sm font-medium text-gray-400">Serviço</th>
+              <th className="p-5 text-sm font-medium text-gray-400">Data/Hora</th>
+              <th className="p-5 text-sm font-medium text-gray-400 text-center">Status</th>
+              <th className="p-5 text-sm font-medium text-gray-400 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {loading ? (
+              <tr><td colSpan={5} className="p-12 text-center text-gray-500">Carregando agenda...</td></tr>
+            ) : appointments.length === 0 ? (
+              <tr><td colSpan={5} className="p-12 text-center text-gray-500">Nenhum agendamento encontrado.</td></tr>
+            ) : appointments.map((app) => (
+              <tr key={app.id} className="hover:bg-white/[0.02] transition-colors">
+                <td className="p-5 flex items-center gap-3">
+                  <div className="bg-white/5 p-2 rounded-full"><User size={18} className="text-gray-400"/></div>
+                  <span className="font-medium text-white">{app.client_name}</span>
+                </td>
+                <td className="p-5 text-gray-300">
+                  {app.services?.name || 'Serviço'}
+                  <p className="text-xs text-gray-500">R$ {app.services?.price.toFixed(2)}</p>
+                </td>
+                <td className="p-5 text-gray-300">
+                  {new Date(app.date).toLocaleDateString('pt-BR')}
+                  <p className="text-xs text-gray-500">{new Date(app.date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</p>
+                </td>
+                <td className="p-5 text-center">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
+                    app.status === 'confirmed' ? 'bg-green-500/10 text-green-400' :
+                    app.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400' :
+                    'bg-red-500/10 text-red-400'
+                  }`}>
+                    {app.status === 'confirmed' ? <CheckCircle size={14} /> :
+                     app.status === 'pending' ? <Clock3 size={14} /> :
+                     <XCircle size={14} />}
+                    {app.status === 'confirmed' ? 'Confirmado' : app.status === 'pending' ? 'Pendente' : 'Cancelado'}
+                  </span>
+                </td>
+                <td className="p-5 text-right space-x-2">
+                  {app.status === 'pending' && (
+                    <button 
+                      onClick={() => updateStatus(app.id, 'confirmed')}
+                      className="text-green-400 hover:text-green-300 text-sm font-medium p-2 rounded-lg hover:bg-green-500/10 transition"
+                    >
+                      Confirmar
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => updateStatus(app.id, 'cancelled')}
+                    className="text-gray-500 hover:text-red-400 text-sm font-medium p-2 rounded-lg hover:bg-red-500/10 transition"
                   >
-                    💬 Confirmar por Whats
-                  </a>
-                )}
-                
-                {app.status === 'pendente' && (
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => updateStatus(app.id, 'concluído')}
-                      className="flex-1 bg-zinc-800 hover:bg-green-700 text-white text-xs font-bold py-2 rounded transition-all"
-                    >
-                      CONCLUIR
-                    </button>
-                    <button 
-                      onClick={() => updateStatus(app.id, 'cancelado')}
-                      className="flex-1 bg-zinc-800 hover:bg-red-700 text-white text-xs font-bold py-2 rounded transition-all"
-                    >
-                      CANCELAR
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))
-        )}
+                    Cancelar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
