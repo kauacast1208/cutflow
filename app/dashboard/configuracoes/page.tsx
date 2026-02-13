@@ -2,8 +2,8 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import { Plus, Trash2, Scissors, Store, User, Settings2 } from 'lucide-react'
 
-// 1. Configuração da conexão com o Supabase
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -13,143 +13,153 @@ export default function ConfiguracoesPage() {
   const [services, setServices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  
-  // Estados para o formulário de novo serviço
   const [newName, setNewName] = useState('')
   const [newPrice, setNewPrice] = useState('')
 
-  // 2. FUNÇÃO QUE BUSCA OS SERVIÇOS NO BANCO
   async function fetchServices() {
     setLoading(true)
     const { data, error } = await supabase
-      .from("services") // nome da tabela no supabase
+      .from("services")
       .select("*")
       .order('created_at', { ascending: false })
-      
     if (!error) setServices(data || [])
     setLoading(false)
   }
 
-  // 3. O useEffect: Executa a busca assim que a página abre
-  useEffect(() => {
-    fetchServices()
-  }, []) // O array vazio [] garante que rode só uma vez
-
-  // Função para adicionar serviço
   async function addService(e: React.FormEvent) {
     e.preventDefault()
     if (!newName || !newPrice) return
-
     const { error } = await supabase
       .from("services")
       .insert([{ name: newName, price: parseFloat(newPrice) }])
-
-    if (error) {
-      alert("Erro ao salvar: " + error.message)
-    } else {
-      setNewName('')
-      setNewPrice('')
-      setIsModalOpen(false)
-      fetchServices() // Atualiza a lista após salvar
+    if (!error) {
+      setNewName(''); setNewPrice(''); setIsModalOpen(false); fetchServices()
     }
   }
 
-  // Função para deletar serviço
   async function deleteService(id: string) {
     if (confirm("Deseja excluir este serviço?")) {
       const { error } = await supabase.from("services").delete().eq("id", id)
-      if (!error) fetchServices() // Atualiza a lista após deletar
+      if (!error) fetchServices()
     }
   }
 
+  useEffect(() => { fetchServices() }, [])
+
   return (
-    <div className="p-8 max-w-4xl mx-auto text-white">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Serviços</h1>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-medium transition"
-        >
-          + Novo Serviço
-        </button>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto text-white animate-in fade-in duration-500">
+      <header className="mb-10">
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+          <Settings2 className="text-gray-400" /> Configurações
+        </h1>
+        <p className="text-gray-500">Gerencie os detalhes do seu negócio e catálogo de serviços.</p>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* LADO ESQUERDO: Perfil e Empresa */}
+        <div className="space-y-6 lg:col-span-1">
+          <section className="bg-[#111] border border-white/5 p-6 rounded-2xl shadow-xl">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-6 flex items-center gap-2">
+              <User size={16} /> Perfil do Usuário
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-600 block mb-1">E-mail de acesso</label>
+                <p className="text-sm font-medium bg-white/5 p-3 rounded-xl border border-white/5 text-gray-400">
+                  kauacast08@gmail.com
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-[#111] border border-white/5 p-6 rounded-2xl shadow-xl">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-6 flex items-center gap-2">
+              <Store size={16} /> Dados da Barbearia
+            </h2>
+            <div className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="Nome da Barbearia"
+                className="w-full bg-black border border-white/10 rounded-xl p-3 text-sm focus:border-white/30 outline-none"
+              />
+              <button className="w-full bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl text-sm font-bold transition-all border border-white/10">
+                Salvar Alterações
+              </button>
+            </div>
+          </section>
+        </div>
+
+        {/* LADO DIREITO: Serviços */}
+        <div className="lg:col-span-2">
+          <section className="bg-[#111] border border-white/5 rounded-2xl shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+              <h2 className="font-bold flex items-center gap-2">
+                <Scissors size={18} className="text-gray-400" /> Catálogo de Serviços
+              </h2>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-500 text-xs font-bold px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+              >
+                <Plus size={14} /> Novo Serviço
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-white/[0.02] text-xs text-gray-500 uppercase tracking-widest">
+                  <tr>
+                    <th className="p-5 font-medium">Nome</th>
+                    <th className="p-5 font-medium text-right">Preço</th>
+                    <th className="p-5 font-medium text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-sm">
+                  {loading ? (
+                    <tr><td colSpan={3} className="p-10 text-center text-gray-500">Carregando...</td></tr>
+                  ) : services.map((service) => (
+                    <tr key={service.id} className="hover:bg-white/[0.01] transition-colors">
+                      <td className="p-5 font-medium">{service.name}</td>
+                      <td className="p-5 text-right font-bold text-green-400">R$ {service.price.toFixed(2)}</td>
+                      <td className="p-5 text-right">
+                        <button onClick={() => deleteService(service.id)} className="text-gray-500 hover:text-red-500 transition-colors p-2">
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       </div>
 
-      {/* Tabela de Serviços */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
-        <table className="w-full text-left">
-          <thead className="bg-zinc-800/50 text-zinc-400 text-sm">
-            <tr>
-              <th className="p-4 font-medium">Nome do Serviço</th>
-              <th className="p-4 font-medium text-right">Preço</th>
-              <th className="p-4 font-medium text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-800">
-            {loading ? (
-              <tr><td colSpan={3} className="p-8 text-center text-zinc-500">Carregando...</td></tr>
-            ) : services.length === 0 ? (
-              <tr><td colSpan={3} className="p-8 text-center text-zinc-500">Nenhum serviço cadastrado.</td></tr>
-            ) : services.map((service) => (
-              <tr key={service.id} className="hover:bg-zinc-800/30 transition">
-                <td className="p-4 font-medium">{service.name}</td>
-                <td className="p-4 text-right text-green-400 font-semibold">R$ {service.price.toFixed(2)}</td>
-                <td className="p-4 text-right">
-                  <button 
-                    onClick={() => deleteService(service.id)}
-                    className="text-red-400 hover:text-red-300 text-sm font-medium px-3 py-1 rounded-md hover:bg-red-400/10 transition"
-                  >
-                    Excluir
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Modal de Cadastro (formulário que aparece em cima) */}
+      {/* MODAL ESTILIZADO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Adicionar Serviço</h2>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-[#0f0f0f] border border-white/10 p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-bold mb-6">Novo Serviço</h2>
             <form onSubmit={addService} className="space-y-4">
-              <div>
-                <label className="block text-sm text-zinc-400 mb-1">Nome do Serviço</label>
-                <input 
-                  type="text" 
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-white outline-none focus:border-blue-500"
-                  placeholder="Ex: Corte Degradê"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-zinc-400 mb-1">Preço (R$)</label>
-                <input 
-                  type="number" 
-                  value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2 text-white outline-none focus:border-blue-500"
-                  placeholder="35.00"
-                  step="0.01"
-                  required
-                />
-              </div>
+              <input 
+                type="text" 
+                placeholder="Ex: Corte Americano"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none focus:border-white/40"
+                required
+              />
+              <input 
+                type="number" 
+                placeholder="Preço (0.00)"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+                className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none focus:border-white/40"
+                step="0.01"
+                required
+              />
               <div className="flex gap-3 pt-2">
-                <button 
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 p-2 rounded-lg transition"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit"
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 p-2 rounded-lg font-bold transition"
-                >
-                  Salvar
-                </button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-white/5 p-3 rounded-xl hover:bg-white/10 transition">Cancelar</button>
+                <button type="submit" className="flex-1 bg-white text-black font-bold p-3 rounded-xl hover:bg-gray-200 transition">Salvar</button>
               </div>
             </form>
           </div>
