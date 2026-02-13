@@ -2,107 +2,137 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import { CalendarDays, Clock3, User, Scissors } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-export default function AgendarPage() {
+export default function AgendarClientePage() {
   const [services, setServices] = useState<any[]>([])
   const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [selectedService, setSelectedService] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [selectedService, setSelectedService] = useState('')
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
+  // Buscar serviços disponíveis para o cliente escolher
   useEffect(() => {
-    async function getServices() {
-      const { data } = await supabase.from('services').select('*')
+    async function fetchServices() {
+      const { data } = await supabase.from("services").select("*")
       if (data) setServices(data)
     }
-    getServices()
+    fetchServices()
   }, [])
 
-  async function handleBooking(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
+    setStatus('loading')
 
-    const { error } = await supabase.from('appointments').insert([
-      {
+    const { error } = await supabase
+      .from("appointments") // Tabela onde salvamos os agendamentos
+      .insert([{ 
         client_name: name,
-        client_phone: phone,
+        date: `${date}T${time}:00`,
         service_id: selectedService,
-        appointment_date: date,
-        appointment_time: time,
-      }
-    ])
+        status: 'pending'
+      }])
 
-    if (!error) {
-      setSent(true)
+    if (error) {
+      console.error(error)
+      setStatus('error')
     } else {
-      alert('Erro ao agendar. Tente novamente.')
+      setStatus('success')
+      setName('')
+      setDate('')
+      setTime('')
+      setSelectedService('')
     }
-    setLoading(false)
-  }
-
-  if (sent) {
-    return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 text-center">
-        <h1 className="text-4xl font-bold text-green-500 mb-4">✔ Sucesso!</h1>
-        <p className="text-zinc-400">Seu horário foi reservado. Nos vemos em breve!</p>
-      </div>
-    )
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-6">
-      <div className="max-w-md mx-auto pt-10">
-        <h1 className="text-3xl font-bold mb-2">CutFlow</h1>
-        <p className="text-zinc-400 mb-8">Reserve seu horário em poucos segundos.</p>
+    <div className="min-h-screen bg-[#060606] text-white p-6 flex items-center justify-center">
+      <div className="bg-[#111] border border-white/5 p-8 rounded-2xl w-full max-w-lg shadow-2xl">
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Agendar seu Corte</h1>
+        <p className="text-gray-500 mb-8">Preencha os dados abaixo para garantir seu horário.</p>
 
-        <form onSubmit={handleBooking} className="space-y-4">
-          <div>
-            <label className="block text-sm text-zinc-400 mb-1">Seu Nome</label>
-            <input required type="text" value={name} onChange={e => setName(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg focus:outline-none focus:border-blue-500" />
+        {status === 'success' && (
+          <div className="bg-green-500/10 border border-green-500 text-green-300 p-4 rounded-xl mb-6 text-center font-medium">
+            Agendamento solicitado com sucesso! Aguarde a confirmação.
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Nome */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+              <User size={16} /> Seu Nome
+            </label>
+            <input 
+              type="text" 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none focus:border-white/40"
+              placeholder="Ex: João Silva"
+              required
+            />
           </div>
 
-          <div>
-            <label className="block text-sm text-zinc-400 mb-1">WhatsApp</label>
-            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg focus:outline-none focus:border-blue-500" />
-          </div>
-
-          <div>
-            <label className="block text-sm text-zinc-400 mb-1">Escolha o Serviço</label>
-            <select required value={selectedService} onChange={e => setSelectedService(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg focus:outline-none">
-              <option value="">Selecione...</option>
-              {services.map(s => (
-                <option key={s.id} value={s.id}>{s.name} - R$ {s.price}</option>
+          {/* Serviço */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+              <Scissors size={16} /> Serviço
+            </label>
+            <select 
+              value={selectedService}
+              onChange={(e) => setSelectedService(e.target.value)}
+              className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none focus:border-white/40 appearance-none"
+              required
+            >
+              <option value="" className="bg-black">Selecione o serviço...</option>
+              {services.map(service => (
+                <option key={service.id} value={service.id} className="bg-black">
+                  {service.name} - R$ {service.price.toFixed(2)}
+                </option>
               ))}
             </select>
           </div>
 
+          {/* Data e Hora */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-zinc-400 mb-1">Data</label>
-              <input required type="date" value={date} onChange={e => setDate(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg" />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                <CalendarDays size={16} /> Data
+              </label>
+              <input 
+                type="date" 
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none focus:border-white/40"
+                required
+              />
             </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-1">Horário</label>
-              <input required type="time" value={time} onChange={e => setTime(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 p-3 rounded-lg" />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                <Clock3 size={16} /> Hora
+              </label>
+              <input 
+                type="time" 
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none focus:border-white/40"
+                required
+              />
             </div>
           </div>
 
-          <button disabled={loading} type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all">
-            {loading ? 'Agendando...' : 'Confirmar Agendamento'}
+          <button 
+            type="submit"
+            disabled={status === 'loading'}
+            className="w-full bg-white text-black hover:bg-gray-200 p-4 rounded-xl font-bold transition-all shadow-lg disabled:opacity-50"
+          >
+            {status === 'loading' ? 'Agendando...' : 'Confirmar Agendamento'}
           </button>
         </form>
       </div>
