@@ -2,8 +2,8 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-import { CalendarDays, Clock3, User, Check } from 'lucide-react'
-import { toast } from 'sonner'
+import { CalendarDays, Clock3, User, Check, Scissors } from 'lucide-react'
+import { toast, Toaster } from 'sonner' // Adicionamos o Toaster aqui também para garantir
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +15,6 @@ export default function AgendarClientePage() {
   const [name, setName] = useState('')
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
-  // Agora guardamos uma lista de IDs selecionados
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -27,7 +26,6 @@ export default function AgendarClientePage() {
     fetchServices()
   }, [])
 
-  // Função para marcar/desmarcar serviços
   const toggleService = (id: string) => {
     setSelectedServices(prev => 
       prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
@@ -36,67 +34,55 @@ export default function AgendarClientePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (selectedServices.length === 0) {
-      return toast.error("Selecione pelo menos um serviço!")
-    }
-    
+    if (selectedServices.length === 0) return toast.error("Selecione um serviço!")
     setLoading(true)
 
-    // Juntamos os nomes dos serviços para salvar no banco (ou você pode criar uma tabela pivot se preferir)
     const serviceNames = services
       .filter(s => selectedServices.includes(s.id))
-      .map(s => s.name)
-      .join(", ")
+      .map(s => s.name).join(", ")
 
-    const { error } = await supabase
-      .from("appointments")
-      .insert([{ 
-        client_name: name,
-        date: `${date}T${time}:00`,
-        service_id: selectedServices[0], // Mantém o principal para não quebrar o banco antigo
-        notes: `Serviços: ${serviceNames}`, // Salva todos os selecionados aqui
-        status: 'pending'
-      }])
+    const { error } = await supabase.from("appointments").insert([{ 
+      client_name: name,
+      date: `${date}T${time}:00`,
+      notes: `Serviços: ${serviceNames}`,
+      status: 'pending'
+    }])
 
-    if (error) {
-      toast.error("Erro ao agendar")
-    } else {
-      toast.success("Agendamento realizado!")
+    if (error) toast.error("Erro ao agendar")
+    else {
+      toast.success("Agendado com sucesso!")
       setName(''); setDate(''); setTime(''); setSelectedServices([])
     }
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-[#060606] text-white p-6 flex items-center justify-center">
-      <div className="bg-[#111] border border-white/5 p-8 rounded-3xl w-full max-w-lg shadow-2xl">
-        <h1 className="text-3xl font-bold mb-2 italic">CutFlow</h1>
-        <p className="text-gray-500 mb-8 font-medium">Escolha quantos serviços desejar.</p>
+    <div className="min-h-screen bg-black text-white p-6 flex items-center justify-center font-sans">
+      <Toaster theme="dark" position="top-center" />
+      
+      <div className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl w-full max-w-lg shadow-2xl">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold italic tracking-tighter">CutFlow</h1>
+          <p className="text-zinc-500 text-sm mt-1">Reserve seu horário em segundos</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-400 flex items-center gap-2"><User size={16} /> Nome</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white outline-none focus:border-white/40" placeholder="Seu nome" required />
+            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+              <User size={14} /> Seu Nome completo
+            </label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-white outline-none focus:border-white/20 transition-all" placeholder="Como quer ser chamado?" required />
           </div>
 
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-400">Serviços (Selecione um ou mais)</label>
-            <div className="grid grid-cols-1 gap-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+              <Scissors size={14} /> Selecione os Serviços
+            </label>
+            <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
               {services.map(service => (
-                <div 
-                  key={service.id}
-                  onClick={() => toggleService(service.id)}
-                  className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
-                    selectedServices.includes(service.id) 
-                    ? "bg-white/10 border-white/40" 
-                    : "bg-black border-white/5 hover:border-white/20"
-                  }`}
-                >
-                  <div className="flex flex-col">
-                    <span className="font-bold text-sm">{service.name}</span>
-                    <span className="text-xs text-green-400">R$ {service.price.toFixed(2)}</span>
-                  </div>
-                  {selectedServices.includes(service.id) && <Check size={18} className="text-white" />}
+                <div key={service.id} onClick={() => toggleService(service.id)} className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all ${selectedServices.includes(service.id) ? "bg-white text-black border-white" : "bg-zinc-950 border-zinc-800 hover:border-zinc-600"}`}>
+                  <span className="font-bold text-sm">{service.name}</span>
+                  <span className={`text-xs ${selectedServices.includes(service.id) ? "text-black/60" : "text-green-400"}`}>R$ {service.price.toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -104,17 +90,17 @@ export default function AgendarClientePage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 flex items-center gap-2"><CalendarDays size={16} /> Data</label>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white outline-none focus:border-white/40" required />
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2"><CalendarDays size={14} /> Data</label>
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-white outline-none focus:border-white/20" required />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-400 flex items-center gap-2"><Clock3 size={16} /> Hora</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-black border border-white/10 rounded-xl p-4 text-white outline-none focus:border-white/40" required />
+              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2"><Clock3 size={14} /> Hora</label>
+              <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-4 text-white outline-none focus:border-white/20" required />
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="w-full bg-white text-black p-4 rounded-xl font-black uppercase tracking-widest hover:bg-gray-200 transition-all disabled:opacity-50">
-            {loading ? 'Processando...' : 'Confirmar Agendamento'}
+          <button type="submit" disabled={loading} className="w-full bg-white text-black p-5 rounded-2xl font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 shadow-xl shadow-white/5">
+            {loading ? 'Reservando...' : 'Finalizar Agendamento'}
           </button>
         </form>
       </div>
