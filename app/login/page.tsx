@@ -2,8 +2,9 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Lock, Mail } from 'lucide-react'
 
-// Cliente direto para evitar problemas de cache
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -12,75 +13,84 @@ const supabase = createClient(
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setError(null)
+    setError('')
 
-    console.log("Tentando logar com:", email)
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-    try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (authError) {
-        console.error("Erro do Supabase:", authError.message)
-        setError(authError.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos' : authError.message)
-        setLoading(false)
-        return
-      }
-
-      if (data.session) {
-        console.log("Login realizado com sucesso! Redirecionando...")
-        // Força a gravação da sessão antes de mudar de página
-        await supabase.auth.setSession(data.session)
-        window.location.href = '/dashboard/agendamentos'
-      }
-    } catch (err) {
-      console.error("Erro inesperado:", err)
-      setError("Erro de conexão. Tente novamente.")
+    if (error) {
+      setError('E-mail ou senha incorretos')
       setLoading(false)
+    } else {
+      router.push('/dashboard/agendamentos')
+      router.refresh()
     }
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4 text-white">
-      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 p-8 rounded-2xl">
-        <div className="text-center mb-10">
-          <h1 className="text-5xl font-black italic">CutFlow</h1>
-          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em]">Gestão Premium</p>
+    <div className="min-h-screen bg-[#060606] text-white flex flex-col justify-center items-center p-4">
+      {/* Fundo decorativo */}
+      <div className="absolute inset-0 z-0 opacity-10">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-white rounded-full filter blur-[128px]"></div>
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-gray-500 rounded-full filter blur-[128px]"></div>
+      </div>
+
+      <div className="z-10 w-full max-w-md space-y-8 bg-[#111] p-10 rounded-2xl border border-white/5 shadow-2xl">
+        <div className="text-center">
+          <h1 className="text-4xl font-extrabold tracking-tighter italic text-white">CutFlow</h1>
+          <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mt-1">Gestão Premium</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-5">
-          <input 
-            required type="email" value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl outline-none"
-            placeholder="E-mail"
-          />
-          <input 
-            required type="password" value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-zinc-950 border border-zinc-800 p-4 rounded-xl outline-none"
-            placeholder="Senha"
-          />
-          
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 py-2 rounded text-red-400 text-xs text-center font-bold">
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-lg text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+              <Mail size={16} /> E-mail
+            </label>
+            <input 
+              type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none focus:border-white/40 transition-all"
+              placeholder="seu@email.com"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+              <Lock size={16} /> Senha
+            </label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full bg-black border border-white/10 rounded-xl p-3 text-white outline-none focus:border-white/40 transition-all"
+              placeholder="••••••••"
+              required
+            />
+          </div>
 
           <button 
+            type="submit"
             disabled={loading}
-            className="w-full bg-white text-black font-black py-4 rounded-xl hover:bg-zinc-200 uppercase text-sm"
+            className="w-full bg-white text-black hover:bg-gray-200 p-4 rounded-xl font-bold transition-all shadow-lg hover:scale-[1.02] disabled:opacity-50"
           >
-            {loading ? 'Processando...' : 'Entrar no Painel'}
+            {loading ? 'Acessando...' : 'Entrar no Sistema'}
           </button>
         </form>
       </div>
