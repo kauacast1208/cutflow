@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-import { CalendarClock, CheckCircle, XCircle, Clock3, User } from 'lucide-react'
+import { CalendarClock, CheckCircle, XCircle, Clock3, User, DollarSign, BarChart3 } from 'lucide-react'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,7 +16,6 @@ export default function AgendamentosPage() {
   useEffect(() => {
     async function fetchAppointments() {
       setLoading(true)
-      // Buscamos o agendamento e o nome do serviço relacionado
       const { data, error } = await supabase
         .from("appointments")
         .select("*, services(name, price)")
@@ -35,12 +34,21 @@ export default function AgendamentosPage() {
       .eq("id", id)
     
     if (!error) {
-      // Atualiza a lista localmente para não precisar recarregar
       setAppointments(prev => 
         prev.map(app => app.id === id ? {...app, status: newStatus} : app)
       )
     }
   }
+
+  // --- LÓGICA DE CÁLCULO FINANCEIRO ---
+  const totalFaturado = appointments
+    .filter(app => app.status === 'confirmed')
+    .reduce((sum, app) => sum + (app.services?.price || 0), 0)
+
+  const faturamentoPendente = appointments
+    .filter(app => app.status === 'pending')
+    .reduce((sum, app) => sum + (app.services?.price || 0), 0)
+  // ------------------------------------
 
   return (
     <div className="p-8 max-w-7xl mx-auto text-white animate-in fade-in duration-500">
@@ -50,6 +58,40 @@ export default function AgendamentosPage() {
           <p className="text-gray-500">Gerencie todos os cortes agendados.</p>
         </div>
       </div>
+
+      {/* --- CARDS DE RESUMO FINANCEIRO --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="bg-[#111] border border-white/5 p-6 rounded-2xl flex items-center gap-4 shadow-xl">
+          <div className="bg-green-500/10 p-4 rounded-full text-green-400">
+            <DollarSign size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Total Faturado</p>
+            <p className="text-3xl font-bold text-white">R$ {totalFaturado.toFixed(2)}</p>
+          </div>
+        </div>
+        
+        <div className="bg-[#111] border border-white/5 p-6 rounded-2xl flex items-center gap-4 shadow-xl">
+          <div className="bg-yellow-500/10 p-4 rounded-full text-yellow-400">
+            <Clock3 size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">A receber (Pendente)</p>
+            <p className="text-3xl font-bold text-white">R$ {faturamentoPendente.toFixed(2)}</p>
+          </div>
+        </div>
+
+        <div className="bg-[#111] border border-white/5 p-6 rounded-2xl flex items-center gap-4 shadow-xl">
+          <div className="bg-white/5 p-4 rounded-full text-gray-300">
+            <BarChart3 size={24} />
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Total Agendamentos</p>
+            <p className="text-3xl font-bold text-white">{appointments.length}</p>
+          </div>
+        </div>
+      </div>
+      {/* ---------------------------------- */}
 
       <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
         <table className="w-full text-left">
