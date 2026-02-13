@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-import { CalendarDays, Clock3, User, Scissors, CheckCircle2 } from 'lucide-react'
+import { CalendarDays, Clock3, User, Scissors, Instagram, MessageCircle, Share2 } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
 import "../globals.css";
 
@@ -11,7 +11,6 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// Lista de horários disponíveis
 const availableTimes = [
   "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", 
   "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", 
@@ -52,93 +51,101 @@ export default function AgendarClientePage() {
     if (error) {
       toast.error("Erro ao realizar agendamento")
     } else {
-      toast.success("Agendamento solicitado!")
+      toast.success("Agendamento solicitado com sucesso!")
       setName(''); setDate(''); setTime(''); setSelectedService('')
     }
     setLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-[#060606] text-white p-4 md:p-8 flex items-center justify-center font-sans">
+    <div className="min-h-screen bg-[#060606] text-white p-4 md:p-12 flex flex-col items-center justify-center font-sans">
       <Toaster theme="dark" position="top-center" />
       
       <div className="w-full max-w-xl">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black italic tracking-tighter uppercase leading-none">CutFlow</h1>
-          <p className="text-zinc-500 text-sm mt-2">Agendamento rápido e exclusivo</p>
+        {/* LOGO E HEADER PREMIUM */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-zinc-900 border border-white/10 mb-6 shadow-2xl">
+            <Scissors className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none mb-2">CutFlow</h1>
+          <div className="flex items-center justify-center gap-2">
+            <span className="h-[1px] w-8 bg-zinc-800"></span>
+            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em]">Experiência Exclusive</p>
+            <span className="h-[1px] w-8 bg-zinc-800"></span>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8 bg-zinc-950 border border-zinc-900 p-6 md:p-10 rounded-[2.5rem] shadow-2xl">
+        {/* FORMULÁRIO COM GLASSMORPHISM */}
+        <form onSubmit={handleSubmit} className="space-y-8 bg-zinc-950/40 border border-zinc-900/50 backdrop-blur-md p-6 md:p-10 rounded-[3rem] shadow-2xl">
           
-          {/* NOME */}
           <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-              <User size={14} /> Seu Nome
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 ml-1">
+              <User size={12} className="text-zinc-400" /> Seu Nome
             </label>
             <input 
               type="text" 
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-white outline-none focus:border-white/20 transition-all"
-              placeholder="Como quer ser chamado?"
+              className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-5 text-white outline-none focus:border-white/20 transition-all placeholder:text-zinc-700 font-medium"
+              placeholder="Ex: Nome Sobrenome"
               required
             />
           </div>
 
-          {/* SERVIÇOS */}
           <div className="space-y-4">
-            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-              <Scissors size={14} /> O que vamos fazer hoje?
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 ml-1">
+              <Scissors size={12} className="text-zinc-400" /> Selecione o Serviço
             </label>
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-3">
               {services.map(service => (
                 <button
                   key={service.id}
                   type="button"
                   onClick={() => setSelectedService(service.id)}
-                  className={`p-4 rounded-2xl border transition-all text-left flex justify-between items-center ${
+                  className={`group p-5 rounded-3xl border transition-all text-left flex items-center justify-between ${
                     selectedService === service.id 
-                    ? "border-white bg-white text-black" 
-                    : "border-zinc-800 bg-zinc-900 text-white hover:border-zinc-700"
+                    ? "border-white bg-white text-black shadow-xl scale-[1.02]" 
+                    : "border-zinc-800/50 bg-zinc-900/20 text-white hover:border-zinc-700"
                   }`}
                 >
-                  <span className="font-bold">{service.name}</span>
-                  <span className="font-black">R$ {service.price.toFixed(2)}</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="font-bold text-lg">{service.name}</span>
+                    <span className={`text-[10px] font-bold ${selectedService === service.id ? "text-black/50" : "text-zinc-600"}`}>DURAÇÃO: 45 MIN</span>
+                  </div>
+                  <span className="font-black text-xl">R$ {service.price.toFixed(2)}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* DATA */}
           <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-              <CalendarDays size={14} /> Escolha o Dia
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 ml-1">
+              <CalendarDays size={12} className="text-zinc-400" /> Data do Atendimento
             </label>
             <input 
               type="date" 
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-white outline-none focus:border-white/20 transition-all appearance-none"
+              className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-5 text-white outline-none focus:border-white/20 transition-all appearance-none"
               required
             />
           </div>
 
-          {/* HORÁRIOS EM BOTÕES */}
           {date && (
-            <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                <Clock3 size={14} /> Horários Disponíveis
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 flex items-center gap-2 ml-1">
+                <Clock3 size={12} className="text-zinc-400" /> Horários Disponíveis
               </label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                 {availableTimes.map(slot => (
                   <button
                     key={slot}
                     type="button"
                     onClick={() => setTime(slot)}
-                    className={`py-3 rounded-xl border text-sm font-bold transition-all ${
+                    className={`py-3 rounded-xl border text-xs font-bold transition-all ${
                       time === slot 
-                      ? "border-white bg-white text-black" 
-                      : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-600"
+                      ? "border-white bg-white text-black scale-110 shadow-lg" 
+                      : "border-zinc-800/50 bg-zinc-900/30 text-zinc-500 hover:border-zinc-600 hover:text-white"
                     }`}
                   >
                     {slot}
@@ -151,11 +158,29 @@ export default function AgendarClientePage() {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-black hover:scale-[1.02] active:scale-[0.98] p-5 rounded-2xl font-black uppercase tracking-widest transition-all disabled:opacity-50 shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+            className="w-full bg-white text-black hover:bg-zinc-200 active:scale-[0.97] p-6 rounded-3xl font-black uppercase tracking-[0.2em] text-sm transition-all shadow-2xl disabled:opacity-50 mt-4"
           >
-            {loading ? 'Confirmando...' : 'Finalizar Agendamento'}
+            {loading ? 'Finalizando...' : 'Confirmar Agendamento'}
           </button>
         </form>
+
+        {/* RODAPÉ COM REDES SOCIAIS */}
+        <div className="mt-12 flex flex-col items-center gap-8">
+          <div className="flex items-center gap-4">
+            <a href="https://instagram.com" target="_blank" className="p-4 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-white/20 transition-all">
+              <Instagram size={20} />
+            </a>
+            <a href="https://wa.me/seunumeroaqui" target="_blank" className="p-4 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-green-500 hover:border-green-500/20 transition-all">
+              <MessageCircle size={20} />
+            </a>
+            <button onClick={() => toast.info("Link copiado!")} className="p-4 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-blue-500 hover:border-blue-500/20 transition-all">
+              <Share2 size={20} />
+            </button>
+          </div>
+          <p className="text-zinc-800 text-[9px] font-black uppercase tracking-[0.5em] text-center">
+            © {new Date().getFullYear()} CUTFLOW SYSTEMS <br/> BARBER MANAGEMENT SOLUTION
+          </p>
+        </div>
       </div>
     </div>
   )
