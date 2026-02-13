@@ -17,23 +17,19 @@ export default function DashboardPrincipal() {
     async function getStats() {
       const today = new Date().toISOString().split('T')[0]
 
-      // 1. Puxa TUDO para calcular
       const { data: allAppts } = await supabase
         .from('appointments')
         .select('*, services(price)')
 
       if (allAppts) {
-        // Faturamento Diário (Confirmados hoje)
         const dailyRevenue = allAppts
           .filter(a => a.status === 'confirmed' && a.date.startsWith(today))
           .reduce((acc, curr) => acc + (curr.services?.price || 0), 0)
 
-        // Pagamentos Pendentes (Status 'pending')
         const pendingRevenue = allAppts
           .filter(a => a.status === 'pending')
           .reduce((acc, curr) => acc + (curr.services?.price || 0), 0)
 
-        // Total de Clientes Únicos
         const uniqueClients = new Set(allAppts.map(a => a.client_name)).size
 
         setStats({
@@ -42,7 +38,6 @@ export default function DashboardPrincipal() {
           totalClients: uniqueClients
         })
 
-        // Lista os top 3 pendentes
         setPendingList(allAppts.filter(a => a.status === 'pending').slice(0, 3))
       }
     }
@@ -57,9 +52,7 @@ export default function DashboardPrincipal() {
         <p className="text-zinc-500">Controle de caixa e atendimentos pendentes.</p>
       </div>
 
-      {/* CARDS DE STATUS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* FATURAMENTO DIÁRIO */}
         <div className="bg-white text-black p-6 rounded-[2rem] shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-black text-white rounded-xl"><TrendingUp size={18}/></div>
@@ -69,7 +62,6 @@ export default function DashboardPrincipal() {
           <p className="text-4xl font-black italic leading-none mt-1">R$ {stats.daily.toFixed(2)}</p>
         </div>
 
-        {/* PENDENTES */}
         <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-[2rem]">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-yellow-500 text-black rounded-xl"><AlertCircle size={18}/></div>
@@ -79,7 +71,6 @@ export default function DashboardPrincipal() {
           <p className="text-4xl font-black text-yellow-500 leading-none mt-1">R$ {stats.pending.toFixed(2)}</p>
         </div>
 
-        {/* CLIENTES */}
         <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-[2rem]">
           <div className="flex items-center justify-between mb-4">
             <div className="p-2 bg-zinc-800 text-white rounded-xl"><Users size={18}/></div>
@@ -89,8 +80,8 @@ export default function DashboardPrincipal() {
         </div>
       </div>
 
-      {/* SEÇÃO DE PENDENTES RÁPIDA */}
       <div className="bg-zinc-950 border border-zinc-900 rounded-[2.5rem] p-8">
+        {/* CORREÇÃO AQUI: Título único */}
         <h2 className="text-xl font-black italic uppercase mb-6 flex items-center gap-2">
           <Clock className="text-zinc-500" size={20} /> Próximos Pendentes
         </h2>
